@@ -161,3 +161,9 @@ th {
   border: none;
   font-size: 25px;
 }
+.form-text {
+  font-size: 12px;
+}
+.adj-table th{
+  font-size: 11px !important;
+}

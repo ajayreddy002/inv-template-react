@@ -1,6 +1,6 @@
 /* eslint-disable array-callback-return */
 import { FieldArray, Form, Formik } from 'formik';
-import { useEffect } from 'react';
+import { useEffect, createRef } from 'react';
 import { useState } from 'react';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { toast } from 'react-toastify';
@@ -9,11 +9,17 @@ import * as Yup from 'yup';
 import Autocomplete from '@mui/material/Autocomplete';
 import { Chip, TextField } from '@mui/material';
 import NumberFormat from 'react-number-format';
+import { postInvoice } from '../../services/base-api.sevrice';
+import { useHistory } from 'react-router-dom';
+import showToast from "../../utils/toast";
 const InvoiceComponent = () => {
+    const formikRef = createRef();
+    const history = useHistory();
     const invoiceschema = Yup.object().shape({
         collectionAmount: Yup.mixed().required('Required').typeError('Must be a number'),
-        chqUtrNo: Yup.number().required('Required').typeError('Must be a number'),
+        chqUtrNo: Yup.mixed().required('Required').typeError('Must be a number'),
         chqUtrDate: Yup.date().required('Required').typeError('Must be a date'),
+        file: Yup.mixed().required('Required'),
         invoices: Yup.array().of(
             Yup.object().shape({
                 invNo: Yup.mixed().required('Required'),
@@ -34,6 +40,8 @@ const InvoiceComponent = () => {
     const [bStatement, setBStatement] = useState([]);
     const [invoicesList, setInvoicesList] = useState([]);
     const [serachInputValue, setSearchInputValue] = useState('');
+    const [isCmUtr, setIsCMUtr] = useState(false);
+    const [selectedPayment, setSelectedPayment] = useState({});
     useEffect(() => {
         getStatement();
         getInvoices();
@@ -58,6 +66,9 @@ const InvoiceComponent = () => {
                 .then(data => {
                     console.log(data.data);
                     if (data.data && data.data.data) {
+                        data.data.data.map(item => {
+                            return item.isSelected = false;
+                        });
                         setBankStatement(data.data.data);
                         setBStatement(data.data.data)
                     }
@@ -104,18 +115,22 @@ const InvoiceComponent = () => {
     const addFieldsOnInvoiceSelection = (invoice, arrayField) => {
         setSelectedInvoices(invoice);
         let amount = 0;
-        let invNum = 0
+        let invNum = 0;
+        let odnNo = 0;
+        let billDate = new Date();
         // eslint-disable-next-line array-callback-return
         invoice.map(item => {
             invNum = item.Bill_Num;
             amount = item.NtAmt_Tr;
+            odnNo = item.ODN;
+            billDate = item.Bill_date;
         });
         arrayField.push({
             invNo: invNum,
-            odnNo: '',
+            odnNo: odnNo,
             invAmount: amount,
             collectedAmount: '',
-            date: '',
+            date: billDate,
             tds: '',
             tdsType: '',
             bankCharges: '',
@@ -127,11 +142,8 @@ const InvoiceComponent = () => {
         if (values && values.invoices) {
             let amount = 0
             values.invoices.map(item => {
-                amount = parseInt(item.invAmount.replace(',', ''));
-                console.log(amount);
-                console.log(parseInt(item.collectedAmount) + parseInt(item.tds) + parseInt(item.bankCharges));
-                if ((parseInt(item.collectedAmount.replace(',', '')) + parseInt(item.tds.replace(',', '')) + parseInt(item.bankCharges.replace(',', ''))) > amount) {
-                    console.log('max')
+                amount = parseInt(item.invAmount.replace(/,/g, ''));
+                if ((parseInt(item.collectedAmount.replace(/,/g, '')) + parseInt(item.tds.replace(/,/g, '')) + parseInt(item.bankCharges.replace(/,/g, ''))) > amount) {
                     toast.info('Please enter amount lessthan or equal to invoice amount', {
                         position: "top-right",
                         autoClose: 2000,
@@ -142,7 +154,54 @@ const InvoiceComponent = () => {
                         progress: undefined,
                     });
                 }
-            })
+            });
+            if ((localStorage.getItem('homeFields')) !== undefined || null) {
+                const homeFields = JSON.parse(localStorage.getItem('homeFields'));
+                console.log(homeFields)
+                values = { ...values, ...homeFields };
+                console.log(JSON.stringify(values))
+                postInvoice('invoice', values)
+                    .then(
+                        data => {
+                            if (data && data.status === 200) {
+                                console.log(data.data);
+                                setSubmitting(false);
+                                formikRef.current.setSubmitting(false);
+                                localStorage.clear();
+                                showToast('success', 'Invoice created successfully');
+                                history.push('/');
+                            }
+                        }
+                    ).catch(e => {
+                        console.log(e);
+                        showToast('error', 'Failed to create invoice, try again');
+                    });
+            }
+        }
+    }
+    const handlePaymentSelection = (event, paymentSelected, setFieldValue) => {
+        if (event.target.checked === true) {
+            setSelectedPayment(paymentSelected);
+            setFieldValue('collectionAmount', paymentSelected.Amount);
+            setFieldValue('chqUtrNo', paymentSelected.Chq_Ref_number);
+            let bStatement = bankStatement;
+            bStatement.map(item => {
+                if (item.Chq_Ref_number === paymentSelected.Chq_Ref_number) {
+                    item.isSelected = true;
+                } else {
+                    item.isSelected = false;
+                }
+                return item;
+            });
+            setBankStatement(bStatement);
+        } else {
+            setSelectedPayment(null);
+            let bStatement = bankStatement;
+            const index = bStatement.findIndex(item => item.Chq_Ref_number === paymentSelected.Chq_Ref_number);
+            bStatement[index].isSelected = false;
+            setBankStatement(bStatement);
+            setFieldValue('collectionAmount', '');
+            setFieldValue('chqUtrNo', '');
         }
     }
     return (
@@ -158,15 +217,16 @@ const InvoiceComponent = () => {
                         collectionAmount: '',
                         chqUtrNo: '',
                         chqUtrDate: '',
-                        specialGlIndicator: 'A',
                         bankName: '',
-                        invoices: []
+                        invoices: [],
+                        file: ''
                     }}
                     validationSchema={invoiceschema}
                     onSubmit={(values, { setSubmitting }) => {
                         console.log(values);
                         postInvoiceData(values, setSubmitting);
                     }}
+                    innerRef={formikRef}
                 >
                     {({
                         values,
@@ -176,6 +236,7 @@ const InvoiceComponent = () => {
                         // handleBlur,
                         handleSubmit,
                         // isSubmitting,
+                        setFieldValue
                         /* and other goodies */
                     }) => (
                         <Form action="" onSubmit={handleSubmit}>
@@ -191,7 +252,24 @@ const InvoiceComponent = () => {
                                                     filterBy={['label']}
                                                     placeholder="Type to select collection method"
                                                     id="collectionMethod"
-                                                    onChange={(e) => values.collectionMethod = e[0]}
+                                                    onChange={(e) => {
+                                                        if (e.length > 0) {
+                                                            setFieldValue('collectionMethod', e[0]);
+                                                            setIsCMUtr(e[0] === 'UTR' ? true : false);
+                                                        } else {
+                                                            setFieldValue('collectionMethod', '');
+                                                            setIsCMUtr(false);
+                                                            setSelectedPayment(selectedPayment => selectedPayment = null)
+                                                            setFieldValue('collectionAmount', '');
+                                                            setFieldValue('chqUtrNo', '');
+                                                            const bStatement = bankStatement;
+                                                            bStatement.map(item => {
+                                                                return item.isSelected = false;
+                                                            });
+                                                            setBankStatement(bStatement);
+                                                        }
+                                                    }
+                                                    }
                                                     inputProps={{ required: true }}
                                                 />
                                                 {errors && errors.collectionMethod ? (
@@ -203,14 +281,23 @@ const InvoiceComponent = () => {
                                         </div>
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
-                                                <label htmlFor="collectionMethod">Upload (UTR /TT / Cheque)</label>
-                                                <input type="file" id="collectionMethod" name="collectionMethod" className="form-control" placeholder="Collection Method" />
+                                                <label htmlFor="file">Upload Documents</label>
+                                                <input type="file" accept="image/*, application/pdf" id="file" name="file" className="form-control" placeholder="file"
+                                                    onChange={(e) => {
+                                                        setFieldValue('file', e.target.files);
+                                                    }}
+                                                />
+                                                {errors && errors.file ? (
+                                                    <div id="file" className="error">
+                                                        {errors.file}
+                                                    </div>) : null
+                                                }
                                             </div>
                                         </div>
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="collectionAmount">Collection Amount</label>
-                                                <NumberFormat thousandSeparator={true} thousandsGroupStyle="lakh" id="collectionAmount" name="collectionAmount" className="form-control" placeholder="Collection Amount" onChange={handleChange} />
+                                                <NumberFormat thousandSeparator={true} disabled={isCmUtr && selectedPayment?.Amount !== undefined ? true : false} thousandsGroupStyle="lakh" id="collectionAmount" name="collectionAmount" className="form-control" placeholder="Collection Amount" value={values.collectionAmount} onChange={handleChange} />
                                                 {/* <input type="text" id="collectionAmount" name="collectionAmount" className="form-control" placeholder="Collection Amount" onChange={handleChange} /> */}
                                                 {errors && errors.collectionAmount ? (
                                                     <div id="customrId" className="error">
@@ -222,7 +309,7 @@ const InvoiceComponent = () => {
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="chequeNo">Cheque/UTR No</label>
-                                                <input type="text" id="chequeNo" name="chqUtrNo" className="form-control" placeholder="Cheque/UTR No" onChange={handleChange} />
+                                                <input type="text" id="chequeNo" disabled={isCmUtr && selectedPayment?.Amount !== undefined ? true : false} name="chqUtrNo" value={values.chqUtrNo} className="form-control" placeholder="Cheque/UTR No" onChange={handleChange} />
                                                 {errors && errors.chqUtrNo ? (
                                                     <div id="customrId" className="error">
                                                         {errors.chqUtrNo}
@@ -243,21 +330,21 @@ const InvoiceComponent = () => {
                                         </div>
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
-                                                <label htmlFor="glIndicator">Special GL Indicator</label>
-                                                <input type="text" disabled id="glIndicator" name="specialGlIndicator" className="form-control" value="A" placeholder="Company Code" />
-                                            </div>
-                                        </div>
-                                        <div className="col-md-4 col-sm-12 col-xs-12">
-                                            <div className="form-group">
                                                 <label htmlFor="bankName">Bank Name</label>
-                                                <Typeahead
-                                                    clearButton
-                                                    options={['Kotak', 'Icici', 'HDFC', 'SBI', 'IOB']}
-                                                    filterBy={['label']}
-                                                    placeholder="Type to select Bank Name"
-                                                    id="bankName"
-                                                    onChange={(e) => values.bankName = e[0]}
-                                                />
+                                                {isCmUtr === true ? (
+                                                    <input type="text" id="bankName" disabled={isCmUtr && selectedPayment?.Bank_Name !== undefined ? true : false} onChange={handleChange} name="bankName" value={isCmUtr && selectedPayment?.Bank_Name !== undefined ? selectedPayment?.Bank_Name : values.bankName} className="form-control" placeholder="Bank Name" />
+                                                ) :
+                                                    < Typeahead
+                                                        clearButton
+                                                        options={['Kotak', 'Icici', 'HDFC', 'SBI', 'IOB']}
+                                                        filterBy={['label']}
+                                                        placeholder="Type to select Bank Name"
+                                                        id="bankName"
+                                                        name="bankName"
+                                                        onChange={(e) => setFieldValue('bankName', selectedPayment.Bank_Name)}
+                                                        inputProps={{ required: true }}
+                                                    />
+                                                }
                                                 {errors && errors.bankName ? (
                                                     <div id="bankName" className="error">
                                                         {errors.bankName}
@@ -295,7 +382,8 @@ const InvoiceComponent = () => {
                                                     {bankStatement.map(bank =>
                                                         <tr key={bank.Chq_Ref_number}>
                                                             <td>
-                                                                <input type="checkbox" title="To enable please select collection method as UTR" disabled={values && values.collectionMethod !== 'UTR' ? true : false} />
+                                                                <input type="checkbox" title="To enable please select collection method as UTR" disabled={values && values.collectionMethod !== 'UTR' ? true : false}
+                                                                    onChange={(e) => handlePaymentSelection(e, bank, setFieldValue)} checked={bank.isSelected} />
                                                             </td>
                                                             <td>{bank.Bank_Name}</td>
                                                             <td>{bank.Amount}</td>
@@ -416,7 +504,7 @@ const InvoiceComponent = () => {
                                                             </td>
                                                             <td>
                                                                 <div className="mb-3">
-                                                                    <input type="text" name={`invoices[${index}].odnNo`} className="form-control" id="odnNo" onChange={handleChange} placeholder="ODN No" />
+                                                                    <input type="text" name={`invoices[${index}].odnNo`} disabled value={values.invoices[index].odnNo} className="form-control" id="odnNo" onChange={handleChange} placeholder="ODN No" />
                                                                     {errors && errors.invoices && errors.invoices[index] && errors.invoices[index].odnNo ? (<div id="odnNo" className="error">
                                                                         {errors.invoices[index].odnNo}
                                                                     </div>) : null}

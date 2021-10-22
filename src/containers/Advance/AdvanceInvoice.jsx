@@ -1,17 +1,20 @@
 import { FieldArray, Form, Formik } from 'formik';
-import { useState } from 'react';
+import { createRef, useState } from 'react';
 import { useEffect } from 'react';
 import { Typeahead } from 'react-bootstrap-typeahead';
-import { useHistory } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { getBankStatement } from '../../services/base-api.sevrice';
+import { getBankStatement, postAdvanceInvoice } from '../../services/base-api.sevrice';
 import * as Yup from 'yup';
+import showToast from '../../utils/toast';
+import { useHistory } from 'react-router-dom';
 const AdvanceInvoice = () => {
-    const history = useHistory();
     const [bankStatement, setBankStatement] = useState([]);
     const [bStatement, setBStatement] = useState([]);
     const [serachInputValue, setSearchInputValue] = useState('');
-
+    const [selectedPayment, setSelectedPayment] = useState({});
+    const [isCmUtr, setIsCMUtr] = useState(false);
+    const history = useHistory();
+    const formikRef = createRef();
     useEffect(() => {
         getStatement();
     }, []);
@@ -26,8 +29,8 @@ const AdvanceInvoice = () => {
     };
     const adInvSchema = Yup.object().shape({
         // collectionMethod: Yup.string().required('Required'),
-        collectionAmount: Yup.number().required('Required').typeError('Must be a number'),
-        chqUtrNo: Yup.number().required('Required').typeError('Must be a number'),
+        collectionAmount: Yup.mixed().required('Required'),
+        chqUtrNo: Yup.mixed().required('Required'),
         saleItems: Yup.array().of(
             Yup.object().shape({
                 saleOrderNo: Yup.number().required('Required').typeError('Must be a number'),
@@ -36,13 +39,8 @@ const AdvanceInvoice = () => {
             })
         ),
         tds: Yup.number().required('Required').typeError('Must be a number'),
-        // tdsType: Yup.string().required('Required'),
-        // bankName: Yup.number().required('Required'),
-        // bankDetails: Yup.mixed().required('Required'),
-        // profitCenter: Yup.mixed().required('Required'),
         remarks: Yup.string().required('Required').typeError('Must be a string'),
-        // businessPlace: Yup.string().required('Required'),
-        // creditArea: Yup.string().required('Required'),
+        file: Yup.mixed().required('Required')
     })
     const getStatement = () => {
         let custName = ''
@@ -52,6 +50,10 @@ const AdvanceInvoice = () => {
                 .then(data => {
                     console.log(data.data);
                     if (data.data && data.data.data) {
+                        data.data.data.map(item => {
+                            return item.isSelected = false;
+                        });
+                        console.log(data.data.data)
                         setBankStatement(data.data.data);
                         setBStatement(data.data.data);
                     }
@@ -69,6 +71,52 @@ const AdvanceInvoice = () => {
                 })
         }
     }
+    const handlePaymentSelection = (event, paymentSelected, setFieldValue) => {
+        if (event.target.checked === true) {
+            setSelectedPayment(paymentSelected);
+            setFieldValue('collectionAmount', paymentSelected.Amount);
+            setFieldValue('chqUtrNo', paymentSelected.Chq_Ref_number);
+            let bStatement = bankStatement;
+            bStatement.map(item => {
+                if (item.Chq_Ref_number === paymentSelected.Chq_Ref_number) {
+                    item.isSelected = true;
+                } else {
+                    item.isSelected = false;
+                }
+                return item;
+            });
+            setBankStatement(bStatement);
+        } else {
+            setSelectedPayment(null);
+            let bStatement = bankStatement;
+            const index = bStatement.findIndex(item => item.Chq_Ref_number === paymentSelected.Chq_Ref_number);
+            bStatement[index].isSelected = false;
+            setBankStatement(bStatement);
+            setFieldValue('collectionAmount', '');
+            setFieldValue('chqUtrNo', '');
+        }
+    }
+    const createAdvanceReciept = (values, { setSubmitting }) => {
+        if ((localStorage.getItem('homeFields')) !== undefined || null) {
+            const homeFields = JSON.parse(localStorage.getItem('homeFields'));
+            console.log(homeFields)
+            values = { ...values, ...homeFields }
+            postAdvanceInvoice('advance', values)
+                .then(
+                    data => {
+                        console.log(data);
+                        if (data && data.status === 200) {
+                            console.log(data.data);
+                            setSubmitting(false);
+                            formikRef.current.setSubmitting(false);
+                            showToast('success', 'Advnace invoice created successfully');
+                            localStorage.clear();
+                            history.push('/');
+                        }
+                    }
+                )
+        }
+    }
     return (
         <div className="home--block">
             <div className="card-header">
@@ -76,7 +124,9 @@ const AdvanceInvoice = () => {
             </div>
             <div className="card-body">
                 <Formik
+                innerRef={formikRef}
                     initialValues={{
+                        homeFields: {},
                         specialGlIndicator: 'A',
                         collectionMethod: '',
                         file: '',
@@ -94,18 +144,16 @@ const AdvanceInvoice = () => {
                     }}
                     validationSchema={adInvSchema}
                     onSubmit={(values, { setSubmitting }) => {
-                        console.log(values)
+                        createAdvanceReciept(values, { setSubmitting })
                     }}
                 >
                     {({
                         values,
                         errors,
-                        // touched,
                         handleChange,
-                        // handleBlur,
                         handleSubmit,
-                        // isSubmitting,
-                        /* and other goodies */
+                        setFieldValue,
+                        isSubmitting,
                     }) => (
                         <Form action="" onSubmit={handleSubmit}>
                             <div className="row">
@@ -129,8 +177,23 @@ const AdvanceInvoice = () => {
                                                     placeholder="Type to collection method"
                                                     id="collectionMethod"
                                                     name="collectionMethod"
-                                                    onChange={(e) => values.collectionMethod = e[0]}
-                                                    inputProps={{ required: true }}
+                                                    onChange={(e) => {
+                                                        if (e.length > 0) {
+                                                            setFieldValue('collectionMethod', e[0]);
+                                                            setIsCMUtr(e[0] === 'UTR' ? true : false);
+                                                        } else {
+                                                            setFieldValue('collectionMethod', '');
+                                                            setIsCMUtr(false);
+                                                            setSelectedPayment(selectedPayment => selectedPayment = null)
+                                                            setFieldValue('collectionAmount', '');
+                                                            setFieldValue('chqUtrNo', '');
+                                                            const bStatement = bankStatement;
+                                                            bStatement.map(item => {
+                                                                return item.isSelected = false;
+                                                            });
+                                                            setBankStatement(bStatement);
+                                                        }
+                                                    }}
                                                 />
                                                 {errors && errors.collectionMethod ? (
                                                     <div id="collectionMethod" className="error">
@@ -141,16 +204,27 @@ const AdvanceInvoice = () => {
                                         </div>
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
-                                                <label htmlFor="file">Upload (UTR /TT / Cheque)</label>
-                                                <input type="file" id="file" name="file" value={values.file} className="form-control" placeholder="Collection Method" />
+                                                <label htmlFor="file">Upload Documents</label>
+                                                <input type="file" id="file" multiple accept="image/*, application/pdf" name="file" className="form-control" placeholder="Collection Method"
+                                                    onChange={(e) => {
+                                                        console.log(e.target.files[0])
+                                                        console.log(JSON.stringify(e.target.files))
+                                                        setFieldValue('file', e.target.files);
+                                                    }}
+                                                />
+                                                {errors && errors.file ? (
+                                                    <div id="file" className="error">
+                                                        {errors.file}
+                                                    </div>) : null
+                                                }
                                             </div>
                                         </div>
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="collectionAmount">Collection Amount</label>
-                                                <input type="text" id="collectionAmount" onChange={handleChange} value={values.collectionAmount} name="collectionAmount" className={`form-control ${errors && errors.collectionAmount ? 'is-invalid' : ''}`} placeholder="Collection Amount" />
+                                                <input type="text" disabled={isCmUtr && selectedPayment?.Amount !== undefined ? true : false} id="collectionAmount" value={values.collectionAmount} onChange={handleChange} name="collectionAmount" className="form-control" placeholder="Collection Amount" />
                                                 {errors && errors.collectionAmount ? (
-                                                    <div id="customrId" className="invalid-feedback">
+                                                    <div id="collectionAmount" className="error">
                                                         {errors.collectionAmount}
                                                     </div>) : null
                                                 }
@@ -159,9 +233,9 @@ const AdvanceInvoice = () => {
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="chequeNo">Cheque/UTR No</label>
-                                                <input type="text" id="chequeNo" onChange={handleChange} name="chqUtrNo" value={values.chqUtrNo} className={`form-control ${errors && errors.chqUtrNo ? 'is-invalid' : ''}`} placeholder="Cheque/UTR No" />
+                                                <input type="text" disabled={isCmUtr && selectedPayment?.Chq_Ref_number !== undefined ? true : false} id="chequeNo" onChange={handleChange} value={values.chqUtrNo} name="chqUtrNo" className="form-control" placeholder="Cheque/UTR No" />
                                                 {errors && errors.chqUtrNo ? (
-                                                    <div id="chequeNo" className="invalid-feedback">
+                                                    <div id="chequeNo" className="error">
                                                         {errors.chqUtrNo}
                                                     </div>) : null
                                                 }
@@ -170,9 +244,9 @@ const AdvanceInvoice = () => {
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="tds">TDS</label>
-                                                <input type="text" id="tds" onChange={handleChange} name="tds" value={values.tds} className={`form-control ${errors && errors.tds ? 'is-invalid' : ''}`} placeholder="TDS" />
+                                                <input type="text" id="tds" onChange={handleChange} name="tds" value={values.tds} className="form-control" placeholder="TDS" />
                                                 {errors && errors.tds ? (
-                                                    <div id="tds" className="invalid-feedback">
+                                                    <div id="tds" className="error">
                                                         {errors.tds}
                                                     </div>) : null
                                                 }
@@ -188,7 +262,6 @@ const AdvanceInvoice = () => {
                                                     id="tdsType"
                                                     name="tdsType"
                                                     onChange={(e) => values.tdsType = e[0]}
-                                                    inputProps={{ required: true }}
                                                 />
                                                 {errors && errors.tdsType ? (
                                                     <div id="tdsType" className="error">
@@ -200,16 +273,20 @@ const AdvanceInvoice = () => {
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="bank">Bank Name</label>
-                                                <Typeahead
-                                                    clearButton
-                                                    options={['Kotak', 'Icici', 'HDFC', 'SBI', 'IOB']}
-                                                    filterBy={['label']}
-                                                    placeholder="Type to select Bank Name"
-                                                    id="bankName"
-                                                    name="bankName"
-                                                    onChange={(e) => values.bankName = e[0]}
-                                                    inputProps={{ required: true }}
-                                                />
+                                                {isCmUtr === true ? (
+                                                    <input type="text" id="bankName" disabled={isCmUtr && selectedPayment?.Bank_Name !== undefined ? true : false} onChange={handleChange} name="bankName" value={isCmUtr && selectedPayment?.Bank_Name !== undefined ? selectedPayment?.Bank_Name : values.bankName} className="form-control" placeholder="Bank Name" />
+                                                ) :
+                                                    < Typeahead
+                                                        clearButton
+                                                        options={['Kotak', 'Icici', 'HDFC', 'SBI', 'IOB']}
+                                                        filterBy={['label']}
+                                                        placeholder="Type to select Bank Name"
+                                                        id="bankName"
+                                                        name="bankName"
+                                                        onChange={(e) => setFieldValue('bankName', selectedPayment.Bank_Name)}
+                                                        inputProps={{ required: true }}
+                                                    />
+                                                }
                                                 {errors && errors.bankName ? (
                                                     <div id="bankName" className="error">
                                                         {errors.bankName}
@@ -220,9 +297,9 @@ const AdvanceInvoice = () => {
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="bankDetails">Bank Details</label>
-                                                <input type="text" onChange={handleChange} id="bankDetails" name="bankDetails" value={values.bankDetails} className={`form-control ${errors && errors.bankDetails ? 'is-invalid' : ''}`} placeholder="TDS" />
+                                                <input type="text" onChange={handleChange} id="bankDetails" name="bankDetails" value={values.bankDetails} className="form-control" placeholder="Bank Details" />
                                                 {errors && errors.bankDetails ? (
-                                                    <div id="bankDetails" className="invalid-feedback">
+                                                    <div id="bankDetails" className="error">
                                                         {errors.bankDetails}
                                                     </div>) : null
                                                 }
@@ -251,9 +328,9 @@ const AdvanceInvoice = () => {
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="remarks">Remarks</label>
-                                                <input type="text" id="remarks" onChange={handleChange} value={values.remarks} name="remarks" className={`form-control ${errors && errors.remarks ? 'is-invalid' : ''}`} placeholder="Remarks" />
+                                                <input type="text" id="remarks" onChange={handleChange} value={values.remarks} name="remarks" className="form-control" placeholder="Remarks" />
                                                 {errors && errors.remarks ? (
-                                                    <div id="remarks" className="invalid-feedback">
+                                                    <div id="remarks" className="error">
                                                         {errors.remarks}
                                                     </div>) : null
                                                 }
@@ -270,7 +347,6 @@ const AdvanceInvoice = () => {
                                                     id="businessPlace"
                                                     name="businessPlace"
                                                     onChange={(e) => values.businessPlace = e[0]}
-                                                    labelKey="businessPlace"
                                                 />
                                                 {errors && errors.businessPlace ? (
                                                     <div id="businessPlace" className="error">
@@ -307,7 +383,6 @@ const AdvanceInvoice = () => {
                                             <label htmlFor="search">Filter by amount/crf number</label>
                                             <input type="text" className="form-control" value={serachInputValue} name="search" id="search" onChange={requestSearch} placeholder="Filter by amount/crf number" />
                                         </div>
-                                        {/* <DataTable tableData={rows} /> */}
                                         <div className="bank--list adv">
                                             <table className="table">
                                                 <thead>
@@ -328,7 +403,10 @@ const AdvanceInvoice = () => {
                                                     {bankStatement.map(bank =>
                                                         <tr key={bank.Chq_Ref_number}>
                                                             <td>
-                                                                <input type="checkbox" disabled={values.collectionMethod !== 'UTR' ? true : false} data-bs-toggle="tooltip" data-bs-placement="top" title="To enable please select collection method as UTR" />
+                                                                <input type="checkbox" disabled={values.collectionMethod !== 'UTR' ? true : false} data-bs-toggle="tooltip" data-bs-placement="top" title="To enable please select collection method as UTR" onChange={(e) => {
+                                                                    handlePaymentSelection(e, bank, setFieldValue)
+                                                                }} checked={bank.isSelected}
+                                                                />
                                                             </td>
                                                             <td>{bank.Bank_Name}</td>
                                                             <td>{bank.Amount}</td>
@@ -401,7 +479,12 @@ const AdvanceInvoice = () => {
                                 </div>
                                 <div className="col-md-12">
                                     <div className="d-flex justify-content-end">
-                                        <button type="submit" className="btn btn-primary">Submit</button>
+                                        <button type="submit" className="btn btn-primary" disabled={isSubmitting ? true : false}>
+                                            {isSubmitting &&
+                                                <span className="spinner-border spinner-border-sm mr-3" role="status" aria-hidden="true"></span>
+                                            }
+                                            Submit
+                                        </button>
                                     </div>
                                 </div>
                             </div>
