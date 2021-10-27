@@ -26,7 +26,7 @@ const InvoiceComponent = () => {
                 odnNo: Yup.number().required('Required').typeError('Must be a number'),
                 invAmount: Yup.mixed().required('Required'),
                 collectedAmount: Yup.mixed().required('Required').typeError('Must be a number'),
-                date: Yup.date().required('Required').typeError('Must be a date'),
+                date: Yup.mixed().required('Required').typeError('Must be a date'),
                 tds: Yup.number().required('Required').typeError('Must be a number'),
                 tdsType: Yup.string().required('Required'),
                 bankCharges: Yup.mixed().required('Required').typeError('Must be a number'),
@@ -168,7 +168,7 @@ const InvoiceComponent = () => {
                                 setSubmitting(false);
                                 formikRef.current.setSubmitting(false);
                                 localStorage.clear();
-                                showToast('success', 'Invoice created successfully');
+                                showToast('success', 'Invoice reciept created successfully');
                                 history.push('/');
                             }
                         }
@@ -411,7 +411,7 @@ const InvoiceComponent = () => {
                                                 Invoice Amount
                                             </th>
                                             <th>
-                                                Date
+                                                Invoice Date
                                             </th>
                                             <th>
                                                 Collected Amount
@@ -518,9 +518,9 @@ const InvoiceComponent = () => {
                                                                     </div>) : null}
                                                                 </div>
                                                             </td>
-                                                            <td width={70}>
+                                                            <td>
                                                                 <div className="mb-3">
-                                                                    <input type="date" name={`invoices[${index}].date`} className="form-control" id="date" placeholder="Date" onChange={handleChange} />
+                                                                    <input type="text" disabled value={values.invoices[index].date} name={`invoices[${index}].date`} className="form-control" id="date" placeholder="Date" onChange={handleChange} />
                                                                     {errors && errors.invoices && errors.invoices[index] && errors.invoices[index].date ? (<div id="date" className="error">
                                                                         {errors.invoices[index].date}
                                                                     </div>) : null}

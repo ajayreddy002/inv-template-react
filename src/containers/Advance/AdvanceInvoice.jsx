@@ -109,7 +109,7 @@ const AdvanceInvoice = () => {
                             console.log(data.data);
                             setSubmitting(false);
                             formikRef.current.setSubmitting(false);
-                            showToast('success', 'Advnace invoice created successfully');
+                            showToast('success', 'Advnace reciept created successfully');
                             localStorage.clear();
                             history.push('/');
                         }

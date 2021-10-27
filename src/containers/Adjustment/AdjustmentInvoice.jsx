@@ -27,7 +27,7 @@ const AdjustmentInvoice = () => {
                 odnNo: Yup.mixed().required('Required').typeError('Must be a number'),
                 postingDate: Yup.mixed().required('Required').typeError('Must be a date'),
                 invAmount: Yup.mixed().required('Required').typeError('Must be a number'),
-                collectedAmount: Yup.number().required('Required').typeError('Must be a number'),
+                collectedAmount: Yup.mixed().required('Required').typeError('Must be a number'),
                 tds: Yup.number().required('Required').typeError('Must be a number'),
                 tdsType: Yup.mixed().required('Required').typeError('Must be a number'),
                 remarks: Yup.mixed().required('Required').typeError('Must be a number'),
