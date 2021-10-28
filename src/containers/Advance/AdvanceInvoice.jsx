@@ -40,7 +40,8 @@ const AdvanceInvoice = () => {
         ),
         tds: Yup.number().required('Required').typeError('Must be a number'),
         remarks: Yup.string().required('Required').typeError('Must be a string'),
-        file: Yup.mixed().required('Required')
+        file: Yup.mixed().required('Required'),
+        postingDateAdv: Yup.date().required('Required'),
     })
     const getStatement = () => {
         let custName = ''
@@ -141,6 +142,7 @@ const AdvanceInvoice = () => {
                         remarks: '',
                         businessPlace: '',
                         creditArea: '',
+                        postingDateAdv: ''
                     }}
                     validationSchema={adInvSchema}
                     onSubmit={(values, { setSubmitting }) => {
@@ -370,6 +372,17 @@ const AdvanceInvoice = () => {
                                                 {errors && errors.creditArea ? (
                                                     <div id="creditArea" className="error">
                                                         {errors.creditArea}
+                                                    </div>) : null
+                                                }
+                                            </div>
+                                        </div>
+                                        <div className="col-md-4 col-sm-12 col-xs-12">
+                                            <div className="form-group">
+                                                <label htmlFor="postingDateAdv">Posting Date</label>
+                                                <input type="text" id="postingDateAdv" onChange={handleChange} value={values.postingDateAdv} name="postingDateAdv" className="form-control" placeholder="Posting Date" />
+                                                {errors && errors.postingDateAdv ? (
+                                                    <div id="postingDateAdv" className="error">
+                                                        {errors.postingDateAdv}
                                                     </div>) : null
                                                 }
                                             </div>

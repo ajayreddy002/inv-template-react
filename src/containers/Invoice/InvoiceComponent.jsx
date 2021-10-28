@@ -20,6 +20,7 @@ const InvoiceComponent = () => {
         chqUtrNo: Yup.mixed().required('Required').typeError('Must be a number'),
         chqUtrDate: Yup.date().required('Required').typeError('Must be a date'),
         file: Yup.mixed().required('Required'),
+        postingDateInv: Yup.mixed().required('Required'),
         invoices: Yup.array().of(
             Yup.object().shape({
                 invNo: Yup.mixed().required('Required'),
@@ -140,21 +141,19 @@ const InvoiceComponent = () => {
     }
     const postInvoiceData = (values, setSubmitting) => {
         if (values && values.invoices) {
-            let amount = 0
+            let amount = 0;
+            var invoiceAmount = 0;
             values.invoices.map(item => {
                 amount = parseInt(item.invAmount.replace(/,/g, ''));
                 if ((parseInt(item.collectedAmount.replace(/,/g, '')) + parseInt(item.tds.replace(/,/g, '')) + parseInt(item.bankCharges.replace(/,/g, ''))) > amount) {
-                    toast.info('Please enter amount lessthan or equal to invoice amount', {
-                        position: "top-right",
-                        autoClose: 2000,
-                        hideProgressBar: false,
-                        closeOnClick: true,
-                        pauseOnHover: true,
-                        draggable: true,
-                        progress: undefined,
-                    });
+                    showToast('info', 'Please enter amount lessthan or equal to invoice amount')
                 }
+                invoiceAmount += parseInt(item.invAmount.replace(/,/g, ''));
             });
+            console.log(invoiceAmount);
+            if(invoiceAmount > parseInt(values.collectionAmount.replace(/,/g, ''))){
+                return showToast('warning', 'Total Invoice amount should not be greater than collection amount')
+            }
             if ((localStorage.getItem('homeFields')) !== undefined || null) {
                 const homeFields = JSON.parse(localStorage.getItem('homeFields'));
                 console.log(homeFields)
@@ -352,6 +351,17 @@ const InvoiceComponent = () => {
                                                 }
                                             </div>
                                         </div>
+                                        <div className="col-md-4 col-sm-12 col-xs-12">
+                                            <div className="form-group">
+                                                <label htmlFor="postingDateInv">Posting Date</label>
+                                                <input type="date" id="postingDateInv" name="postingDateInv" className="form-control" placeholder="Posting Date" onChange={handleChange} />
+                                                {errors && errors.postingDateInv ? (
+                                                    <div id="customrId" className="error">
+                                                        {errors.postingDateInv}
+                                                    </div>) : null
+                                                }
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="col-md-4 border p-0">
@@ -455,7 +465,7 @@ const InvoiceComponent = () => {
                                                                                 values.invoices = [];
                                                                             }
                                                                         }}
-                                                                        getOptionLabel={option => option.Bill_Num}
+                                                                        getOptionLabel={option => `${option.Bill_Num}  +`}
                                                                         renderTags={() => { }}
                                                                         value={selectedInvoices}
                                                                         renderInput={params => (
