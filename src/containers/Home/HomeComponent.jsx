@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { Form, Formik } from 'formik';
 import * as Yup from 'yup';
 import showToast from '../../utils/toast';
+import { Calendar } from 'primereact/calendar';
 const HomeComponent = () => {
     const validationSchema = Yup.object().shape({
         companyCode: Yup.string().required('Required'),
@@ -17,7 +18,7 @@ const HomeComponent = () => {
         salesGroup: Yup.string().required('Required'),
         salesOffice: Yup.string().required('Required'),
         customerGroup: Yup.string().required('Required'),
-        collectionType: Yup.string().required('Required')
+        collectionType: Yup.string().required('Required'),
     });
     const [formValues, setFormValues] = useState(
         {
@@ -31,9 +32,10 @@ const HomeComponent = () => {
             exchangeRate: '',
             collectionType: '',
             creditArea: '',
-            postingDate: '',
+            postingDate: new Date(),
             salesGroupCode: '',
             customerGroupCode: '',
+            profitCenter: ''
         }
     )
     const history = useHistory();
@@ -54,6 +56,10 @@ const HomeComponent = () => {
                         customerGroup: data.data.data.Cust_Group.Name,
                         salesGroupCode: data.data.data.Sales_Grp.SGrp,
                         customerGroupCode: data.data.data.Cust_Group.CGrp,
+                        currency: data.data.data.Currency,
+                        exchangeRate: data.data.data.Exch_Rate,
+                        creditArea: data.data.data.Div_Desc,
+                        profitCenter: data.data.data.Prft_Cntr,
                     }))
                     localStorage.setItem('customerName', data.data.data.Sold_Payer_Name)
                     localStorage.setItem('customerId', customerId)
@@ -185,7 +191,7 @@ const HomeComponent = () => {
                                 <div className="col-md-4 col-sm-12 col-xs-12">
                                     <div className="form-group">
                                         <label htmlFor="currency">Currency</label>
-                                        <select placeholder="Currency" className="form-select"
+                                        <select placeholder="Currency" className="form-select" disabled
                                             id="currency"
                                             name="currency" onChange={(e) => {
                                                 if (e.target.value !== ('Select currency' || '') && e.target.value === 'INR') {
@@ -199,20 +205,6 @@ const HomeComponent = () => {
                                             <option value="USD">USD</option>
                                             <option value="EURO">EURO</option>
                                         </select>
-                                        {/* <Typeahead
-                                            clearButton
-                                            options={['INR', 'USD', 'EURO']}
-                                            filterBy={['label']}
-                                            placeholder="Currency"
-                                            id="currency"
-                                            name="currency"
-                                            onChange={(selected) => {
-                                                if (selected[0] === 'INR') {
-                                                    setFieldValue('exchangeRate', 1);
-                                                }
-                                                setFieldValue('currency', selected[0]);
-                                            }}
-                                        /> */}
                                         {errors && errors.currency ? (
                                             <div id="currency" className="error">
                                                 {errors.currency}
@@ -223,7 +215,7 @@ const HomeComponent = () => {
                                 <div className="col-md-4 col-sm-12 col-xs-12">
                                     <div className="form-group">
                                         <label htmlFor="exchangeRate">Exchange Rate</label>
-                                        <input type="text" id="exchangeRate" name="exchangeRate" className="form-control" value={values.exchangeRate} placeholder="Exchange Rate" onChange={handleChange} />
+                                        <input type="text" id="exchangeRate" disabled name="exchangeRate" className="form-control" value={values.exchangeRate} placeholder="Exchange Rate" onChange={handleChange} />
                                         {errors && errors.exchangeRate ? (
                                             <div id="exchangeRate" className="error">
                                                 {errors.exchangeRate}
@@ -252,14 +244,13 @@ const HomeComponent = () => {
                                 <div className="col-md-4 col-sm-12 col-xs-12">
                                     <div className="form-group">
                                         <label htmlFor="creditArea">Credit Area</label>
-                                        <select placeholder="Currency" className="form-select"
-                                            id="creditArea"
-                                            name="creditArea" onChange={handleChange} value={values.creditArea}>
-                                            <option value="" disabled defaultValue="Select currency">Select Credit Area</option>
+                                        <input placeholder="Currency" className="form-control"
+                                            id="creditArea" disabled
+                                            name="creditArea" onChange={handleChange} value={values.creditArea}/>
+                                            {/* <option value="" disabled defaultValue="Select currency">Select Credit Area</option>
                                             <option value="INR">INR</option>
                                             <option value="USD">USD</option>
-                                            <option value="EURO">EURO</option>
-                                        </select>
+                                            <option value="EURO">EURO</option> */}
                                         {/* <Typeahead
                                             options={['INR', 'USD', 'EURO']}
                                             filterBy={['label']}
@@ -278,7 +269,8 @@ const HomeComponent = () => {
                                 <div className="col-md-4 col-sm-12 col-xs-12">
                                     <div className="form-group">
                                         <label htmlFor="postingDate">Posting Date</label>
-                                        <input type="date" id="postingDate" name="postingDate" className="form-control" placeholder="Posting Date" value={values.postingDate} onChange={handleChange} />
+                                        {/* <input type="date" id="postingDate" name="postingDate" className="form-control" placeholder="Posting Date" value={values.postingDate} onChange={handleChange} /> */}
+                                        <Calendar id="postingDate" name="postingDate" value={values.postingDate} onChange={handleChange}></Calendar>
                                         {errors && errors.postingDate ? (
                                             <div id="postingDate" className="error">
                                                 {errors.postingDate}

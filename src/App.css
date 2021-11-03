@@ -170,3 +170,7 @@ th {
 .css-1kpdewa-MuiAutocomplete-root {
   width: 150px;
 }
+.p-calendar {
+  width: 100% !important;
+  height: 55px !important;
+}

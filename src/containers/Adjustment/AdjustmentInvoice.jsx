@@ -63,10 +63,21 @@ const AdjustmentInvoice = () => {
         setSubmitting(true);
         if ((localStorage.getItem('homeFields')) !== undefined || null) {
             const homeFields = JSON.parse(localStorage.getItem('homeFields'));
+            var dbInvAmount = 0;
             values.debitDocs.map(item => {
+                dbInvAmount += parseInt(item.invAmount.replace(/,/g, ''));
                 return item.balanceAmount = parseInt(item.invAmount.replace(/,/g, '')) - parseInt(item.collectedAmount.replace(/,/g, ''))
             });
             values = { ...values, ...homeFields }
+            if(values && values.debitDocs.length === 0){
+                formikRef.current.setSubmitting(false);
+                return showToast('warning', 'Please create atlease one credit doc');
+            }
+            if(values && dbInvAmount > parseInt( values.creditDocs[0].amount.replace(/,/g, ''))){
+                formikRef.current.setSubmitting(false);
+                return showToast('error', 'Please check debit document amount shold not be more than credit document amount');
+            }
+            
             postAdjustmentInvoice('adjustment', values)
                 .then(
                     data => {
@@ -375,6 +386,11 @@ const AdjustmentInvoice = () => {
                                                                     </td>
                                                                     <td>
                                                                         <div className="form-group">
+                                                                            {/* <select className="form-select" name={`debitDocs[${index}].tdsType`} onChange={handleChange} id="tdsType">
+                                                                                <option value="194Q">194Q</option>
+                                                                                <option value="194C">194C</option>
+                                                                                <option value="GST">GST</option>
+                                                                            </select> */}
                                                                             <Typeahead
                                                                                 options={['194Q', '194C', 'GST']}
                                                                                 filterBy={['label']}

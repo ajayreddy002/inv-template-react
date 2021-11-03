@@ -11,6 +11,10 @@ import AdvanceInvoice from './containers/Advance/AdvanceInvoice';
 import InvoiceComponent from './containers/Invoice/InvoiceComponent';
 import { ToastContainer } from 'react-toastify';
 import AdjustmentInvoice from './containers/Adjustment/AdjustmentInvoice';
+import { InvoicesListComponent } from './containers/Invoices/InvoicesList';
+import 'primereact/resources/themes/saga-blue/theme.css';
+import 'primereact/resources/primereact.min.css';
+import 'primeicons/primeicons.css';
 function App() {
   const location = useLocation();
   const history = useHistory();
@@ -42,6 +46,7 @@ function App() {
       <Route path="/advance-invoice" exact component={AdvanceInvoice}></Route>
       <Route path="/invoice" exact component={InvoiceComponent}></Route>
       <Route path="/adjustment" exact component={AdjustmentInvoice}></Route>
+      <Route path="/view" exact component={InvoicesListComponent}></Route>
     </div>
   );
 }

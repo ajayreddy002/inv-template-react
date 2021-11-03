@@ -3,7 +3,7 @@ import { createRef, useState } from 'react';
 import { useEffect } from 'react';
 import { Typeahead } from 'react-bootstrap-typeahead';
 import { toast } from 'react-toastify';
-import { getBankStatement, postAdvanceInvoice } from '../../services/base-api.sevrice';
+import { getBankStatement, getBusinessPlaceAPI, postAdvanceInvoice } from '../../services/base-api.sevrice';
 import * as Yup from 'yup';
 import showToast from '../../utils/toast';
 import { useHistory } from 'react-router-dom';
@@ -15,8 +15,14 @@ const AdvanceInvoice = () => {
     const [isCmUtr, setIsCMUtr] = useState(false);
     const history = useHistory();
     const formikRef = createRef();
+    const [businessPlaces, setBusinessPlaces] = useState([]);
     useEffect(() => {
         getStatement();
+        getBusinessPlace('businessplace');
+        if((localStorage.getItem('homeFields')) !== undefined || null){
+            formikRef.current.setFieldValue('creditArea', JSON.parse(localStorage.getItem('homeFields')).creditArea)
+            formikRef.current.setFieldValue('profitCenter', JSON.parse(localStorage.getItem('homeFields')).profitCenter)
+        }
     }, []);
 
     const requestSearch = (event) => {
@@ -72,11 +78,24 @@ const AdvanceInvoice = () => {
                 })
         }
     }
+    const getBusinessPlace = () => {
+        getBusinessPlaceAPI('businessplace')
+        .then(data => {
+            console.log(data);
+            if (data.data && data.data.data) {
+                setBusinessPlaces(data.data.data);
+            }
+        }).catch(e => {
+            console.log(e);
+            showToast('error', 'Failed to get business place');
+        })
+    }
     const handlePaymentSelection = (event, paymentSelected, setFieldValue) => {
         if (event.target.checked === true) {
             setSelectedPayment(paymentSelected);
             setFieldValue('collectionAmount', paymentSelected.Amount);
             setFieldValue('chqUtrNo', paymentSelected.Chq_Ref_number);
+            setFieldValue('chqDate', paymentSelected.Date);
             let bStatement = bankStatement;
             bStatement.map(item => {
                 if (item.Chq_Ref_number === paymentSelected.Chq_Ref_number) {
@@ -142,7 +161,8 @@ const AdvanceInvoice = () => {
                         remarks: '',
                         businessPlace: '',
                         creditArea: '',
-                        postingDateAdv: ''
+                        postingDateAdv: '',
+                        chqDate: ''
                     }}
                     validationSchema={adInvSchema}
                     onSubmit={(values, { setSubmitting }) => {
@@ -189,6 +209,7 @@ const AdvanceInvoice = () => {
                                                             setSelectedPayment(selectedPayment => selectedPayment = null)
                                                             setFieldValue('collectionAmount', '');
                                                             setFieldValue('chqUtrNo', '');
+                                                            setFieldValue('chqDate', '');
                                                             const bStatement = bankStatement;
                                                             bStatement.map(item => {
                                                                 return item.isSelected = false;
@@ -238,6 +259,17 @@ const AdvanceInvoice = () => {
                                                 <input type="text" disabled={isCmUtr && selectedPayment?.Chq_Ref_number !== undefined ? true : false} id="chequeNo" onChange={handleChange} value={values.chqUtrNo} name="chqUtrNo" className="form-control" placeholder="Cheque/UTR No" />
                                                 {errors && errors.chqUtrNo ? (
                                                     <div id="chequeNo" className="error">
+                                                        {errors.chqUtrNo}
+                                                    </div>) : null
+                                                }
+                                            </div>
+                                        </div>
+                                        <div className="col-md-4 col-sm-12 col-xs-12">
+                                            <div className="form-group">
+                                                <label htmlFor="chqDate">Cheque Date</label>
+                                                <input type="text" disabled={isCmUtr && selectedPayment?.chqDate !== undefined ? true : false} id="chqDate" onChange={handleChange} value={values.chqDate} name="chqDate" className="form-control" placeholder="Cheque Date" />
+                                                {errors && errors.chqUtrNo ? (
+                                                    <div id="chqDate" className="error">
                                                         {errors.chqUtrNo}
                                                     </div>) : null
                                                 }
@@ -310,7 +342,9 @@ const AdvanceInvoice = () => {
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="profitCenter">Profit Center</label>
-                                                <Typeahead
+                                                <input className="form-control" id="profitCenter"
+                                                    name="profitCenter" onChange={handleChange} value={values.profitCenter}/>
+                                                {/* <Typeahead
                                                     clearButton
                                                     options={['Profit1', 'Profit2', 'Profit3']}
                                                     filterBy={['label']}
@@ -319,7 +353,7 @@ const AdvanceInvoice = () => {
                                                     name="profitCenter"
                                                     onChange={(e) => values.profitCenter = e[0]}
                                                     inputProps={{ required: true }}
-                                                />
+                                                /> */}
                                                 {errors && errors.profitCenter ? (
                                                     <div id="profitCenter" className="error">
                                                         {errors.profitCenter}
@@ -343,12 +377,19 @@ const AdvanceInvoice = () => {
                                                 <label htmlFor="businessPlace">Business Place</label>
                                                 <Typeahead
                                                     clearButton
-                                                    options={['place 1', 'place 2']}
+                                                    options={businessPlaces}
                                                     filterBy={['label']}
+                                                    labelKey={'name'}
                                                     placeholder="Type to select Business Place"
                                                     id="businessPlace"
                                                     name="businessPlace"
-                                                    onChange={(e) => values.businessPlace = e[0]}
+                                                    onChange={(e) => {
+                                                        if(e && e.length > 0){
+                                                            return setFieldValue('businessPlace', e[0].business_place);
+                                                        } else {
+                                                            setFieldValue('businessPlace', '');
+                                                        }
+                                                    }}
                                                 />
                                                 {errors && errors.businessPlace ? (
                                                     <div id="businessPlace" className="error">
@@ -360,7 +401,9 @@ const AdvanceInvoice = () => {
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="creditArea">Credit Area</label>
-                                                <Typeahead
+                                                <input id="creditArea" className="form-control"
+                                                    name="creditArea" value={values.creditArea} onChange={handleChange}/>
+                                                {/* <Typeahead
                                                     clearButton
                                                     options={['Invoice', 'Advance', 'Adjustment']}
                                                     filterBy={['label']}
@@ -368,7 +411,7 @@ const AdvanceInvoice = () => {
                                                     id="creditArea"
                                                     name="creditArea"
                                                     onChange={(e) => values.creditArea = e[0]}
-                                                />
+                                                /> */}
                                                 {errors && errors.creditArea ? (
                                                     <div id="creditArea" className="error">
                                                         {errors.creditArea}
@@ -379,7 +422,7 @@ const AdvanceInvoice = () => {
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="postingDateAdv">Posting Date</label>
-                                                <input type="text" id="postingDateAdv" onChange={handleChange} value={values.postingDateAdv} name="postingDateAdv" className="form-control" placeholder="Posting Date" />
+                                                <input type="date" id="postingDateAdv" onChange={handleChange} value={values.postingDateAdv} name="postingDateAdv" className="form-control" placeholder="Posting Date" />
                                                 {errors && errors.postingDateAdv ? (
                                                     <div id="postingDateAdv" className="error">
                                                         {errors.postingDateAdv}
