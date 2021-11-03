@@ -129,7 +129,7 @@ const AdvanceInvoice = () => {
                             console.log(data.data);
                             setSubmitting(false);
                             formikRef.current.setSubmitting(false);
-                            showToast('success', 'Advnace reciept created successfully');
+                            showToast('success', `Advnace reciept created successfully with ref number ${data.data}`);
                             localStorage.clear();
                             history.push('/');
                         }
@@ -267,7 +267,7 @@ const AdvanceInvoice = () => {
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="chqDate">Cheque Date</label>
-                                                <input type="text" disabled={isCmUtr && selectedPayment?.chqDate !== undefined ? true : false} id="chqDate" onChange={handleChange} value={values.chqDate} name="chqDate" className="form-control" placeholder="Cheque Date" />
+                                                <input type="text" disabled={isCmUtr && selectedPayment?.Date !== undefined ? true : false} id="chqDate" onChange={handleChange} value={values.chqDate} name="chqDate" className="form-control" placeholder="Cheque Date" />
                                                 {errors && errors.chqUtrNo ? (
                                                     <div id="chqDate" className="error">
                                                         {errors.chqUtrNo}

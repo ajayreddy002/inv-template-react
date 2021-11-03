@@ -167,7 +167,7 @@ const InvoiceComponent = () => {
                                 setSubmitting(false);
                                 formikRef.current.setSubmitting(false);
                                 localStorage.clear();
-                                showToast('success', 'Invoice reciept created successfully');
+                                showToast('success', `Invoice reciept created successfully with ref number of ${data.data}`);
                                 history.push('/');
                             }
                         }
@@ -183,6 +183,7 @@ const InvoiceComponent = () => {
             setSelectedPayment(paymentSelected);
             setFieldValue('collectionAmount', paymentSelected.Amount);
             setFieldValue('chqUtrNo', paymentSelected.Chq_Ref_number);
+            setFieldValue('chqUtrDate', paymentSelected.Date);
             let bStatement = bankStatement;
             bStatement.map(item => {
                 if (item.Chq_Ref_number === paymentSelected.Chq_Ref_number) {
@@ -201,6 +202,7 @@ const InvoiceComponent = () => {
             setBankStatement(bStatement);
             setFieldValue('collectionAmount', '');
             setFieldValue('chqUtrNo', '');
+            setFieldValue('chqUtrDate', '');
         }
     }
     return (
@@ -261,6 +263,7 @@ const InvoiceComponent = () => {
                                                             setSelectedPayment(selectedPayment => selectedPayment = null)
                                                             setFieldValue('collectionAmount', '');
                                                             setFieldValue('chqUtrNo', '');
+                                                            setFieldValue('chqUtrDate', '');
                                                             const bStatement = bankStatement;
                                                             bStatement.map(item => {
                                                                 return item.isSelected = false;
@@ -319,7 +322,7 @@ const InvoiceComponent = () => {
                                         <div className="col-md-4 col-sm-12 col-xs-12">
                                             <div className="form-group">
                                                 <label htmlFor="chequeDate">Cheque/UTR Date</label>
-                                                <input type="date" id="chequeDate" name="chqUtrDate" className="form-control" placeholder="Cheque/UTR Date" onChange={handleChange} />
+                                                <input type="text" id="chequeDate" name="chqUtrDate" disabled={isCmUtr && selectedPayment?.Date !== undefined ? true : false} value={values.chqUtrDate} className="form-control" placeholder="Cheque/UTR Date" onChange={handleChange} />
                                                 {errors && errors.chqUtrDate ? (
                                                     <div id="customrId" className="error">
                                                         {errors.chqUtrDate}
@@ -465,14 +468,14 @@ const InvoiceComponent = () => {
                                                                                 values.invoices = [];
                                                                             }
                                                                         }}
-                                                                        getOptionLabel={option => `${option.Bill_Num}  +`}
+                                                                        getOptionLabel={option => option.Bill_Num}
                                                                         renderTags={() => { }}
                                                                         value={selectedInvoices}
                                                                         renderInput={params => (
                                                                             <TextField
                                                                                 {...params}
                                                                                 variant="standard"
-                                                                                placeholder="Select invoices"
+                                                                                placeholder="Add invoices"
                                                                                 margin="normal"
                                                                                 fullWidth
                                                                             />

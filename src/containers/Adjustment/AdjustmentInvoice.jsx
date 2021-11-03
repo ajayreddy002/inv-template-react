@@ -4,13 +4,15 @@ import { Typeahead } from "react-bootstrap-typeahead";
 import NumberFormat from "react-number-format";
 import { useHistory } from "react-router-dom";
 import * as Yup from 'yup';
-import { getInvoicesById, postAdjustmentInvoice } from "../../services/base-api.sevrice";
+import { getCreditInvoicesById, getDebitInvoicesById, getInvoicesById, postAdjustmentInvoice } from "../../services/base-api.sevrice";
 import showToast from "../../utils/toast";
 const AdjustmentInvoice = () => {
     // const [showErr, setShowErr] = useState(false);
     const formikRef = createRef();
     const history = useHistory();
     const [invoicesList, setInvoicesList] = useState([]);
+    const [debitInvoicesList, setDebitInvoicesList] = useState([]);
+    const [creditInvoicesList, setCreditInvoicesList] = useState([]);
     const adjFieldSchema = Yup.object().shape({
         creditDocs: Yup.array().of(
             Yup.object().shape({
@@ -38,8 +40,7 @@ const AdjustmentInvoice = () => {
 
     useEffect(() => {
         getInvoices();
-    }, [])
-
+    }, []);
     const getInvoices = () => {
         let custId = ''
         if (localStorage.getItem('customerId')) {
@@ -48,6 +49,24 @@ const AdjustmentInvoice = () => {
                 .then(data => {
                     if (data.data && data.data.data) {
                         setInvoicesList(data.data.data);
+                    }
+                }).catch(e => {
+                    console.log(e);
+                    showToast('error', 'Failed to get statement please try again');
+                })
+            getDebitInvoicesById('debitinvoices', custId)
+                .then(data => {
+                    if (data.data && data.data.data) {
+                        setDebitInvoicesList(data.data.data);
+                    }
+                }).catch(e => {
+                    console.log(e);
+                    showToast('error', 'Failed to get statement please try again');
+                })
+            getCreditInvoicesById('creditinvoices', custId)
+                .then(data => {
+                    if (data.data && data.data.data) {
+                        setCreditInvoicesList(data.data.data);
                     }
                 }).catch(e => {
                     console.log(e);
@@ -85,7 +104,7 @@ const AdjustmentInvoice = () => {
                             console.log(data.data);
                             setSubmitting(false);
                             formikRef.current.setSubmitting(false);
-                            showToast('success', 'Adjustment reciept created successfully');
+                            showToast('success', `Adjustment reciept created successfully with ref number of ${data.data}`);
                             localStorage.clear();
                             history.push('/');
                         }
@@ -178,7 +197,7 @@ const AdjustmentInvoice = () => {
                                                                     <td>
                                                                         <div className="form-group">
                                                                             <Typeahead
-                                                                                options={invoicesList}
+                                                                                options={creditInvoicesList}
                                                                                 clearButton
                                                                                 filterBy={['label']}
                                                                                 labelKey={'Bill_Num'}
@@ -312,7 +331,7 @@ const AdjustmentInvoice = () => {
                                                                         <div className="form-group">
                                                                             <Typeahead
                                                                                 clearButton
-                                                                                options={invoicesList}
+                                                                                options={debitInvoicesList}
                                                                                 filterBy={['label']}
                                                                                 labelKey={'Bill_Num'}
                                                                                 placeholder="Inv/Debit Doc No"

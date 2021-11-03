@@ -15,6 +15,12 @@ export const getBankStatement = (url, customerName) => {
 export const getInvoicesById = (url, id) => {
     return axios.get(`${baseUrl}/${url}/${id}`);
 }
+export const getDebitInvoicesById = (url, id) => {
+    return axios.get(`${baseUrl}/${url}/${id}`);
+}
+export const getCreditInvoicesById = (url, id) => {
+    return axios.get(`${baseUrl}/${url}/${id}`);
+}
 export const postAdvanceInvoice = (url, body) => {
     return axios.post(`${baseUrl}/${url}`, body)
 }
