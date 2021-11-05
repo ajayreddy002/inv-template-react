@@ -4,13 +4,12 @@ import { Typeahead } from "react-bootstrap-typeahead";
 import NumberFormat from "react-number-format";
 import { useHistory } from "react-router-dom";
 import * as Yup from 'yup';
-import { getCreditInvoicesById, getDebitInvoicesById, getInvoicesById, postAdjustmentInvoice } from "../../services/base-api.sevrice";
+import { getCreditInvoicesById, getDebitInvoicesById, postAdjustmentInvoice } from "../../services/base-api.sevrice";
 import showToast from "../../utils/toast";
 const AdjustmentInvoice = () => {
     // const [showErr, setShowErr] = useState(false);
     const formikRef = createRef();
     const history = useHistory();
-    const [invoicesList, setInvoicesList] = useState([]);
     const [debitInvoicesList, setDebitInvoicesList] = useState([]);
     const [creditInvoicesList, setCreditInvoicesList] = useState([]);
     const adjFieldSchema = Yup.object().shape({
@@ -45,15 +44,6 @@ const AdjustmentInvoice = () => {
         let custId = ''
         if (localStorage.getItem('customerId')) {
             custId = localStorage.getItem('customerId');
-            getInvoicesById('invoices', custId)
-                .then(data => {
-                    if (data.data && data.data.data) {
-                        setInvoicesList(data.data.data);
-                    }
-                }).catch(e => {
-                    console.log(e);
-                    showToast('error', 'Failed to get statement please try again');
-                })
             getDebitInvoicesById('debitinvoices', custId)
                 .then(data => {
                     if (data.data && data.data.data) {
@@ -104,7 +94,7 @@ const AdjustmentInvoice = () => {
                             console.log(data.data);
                             setSubmitting(false);
                             formikRef.current.setSubmitting(false);
-                            showToast('success', `Adjustment reciept created successfully with ref number of ${data.data}`);
+                            showToast('success', `Adjustment reciept created successfully with ref number of ${data.data.data}`);
                             localStorage.clear();
                             history.push('/');
                         }

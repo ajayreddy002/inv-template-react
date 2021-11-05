@@ -36,7 +36,4 @@ export class ProductService {
             {"id": "1029","code": "gwuby345v","name": "Yoga Set","description": "Product Description","image": "yoga-set.jpg","price": 20,"category": "Fitness","quantity": 25,"inventoryStatus": "INSTOCK","rating": 8}
         ]
     }
-    getBusinessPlace(url){
-        return axios.get(baseUrl+url);
-    }
 }

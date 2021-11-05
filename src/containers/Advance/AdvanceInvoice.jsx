@@ -23,6 +23,7 @@ const AdvanceInvoice = () => {
             formikRef.current.setFieldValue('creditArea', JSON.parse(localStorage.getItem('homeFields')).creditArea)
             formikRef.current.setFieldValue('profitCenter', JSON.parse(localStorage.getItem('homeFields')).profitCenter)
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const requestSearch = (event) => {
@@ -129,7 +130,7 @@ const AdvanceInvoice = () => {
                             console.log(data.data);
                             setSubmitting(false);
                             formikRef.current.setSubmitting(false);
-                            showToast('success', `Advnace reciept created successfully with ref number ${data.data}`);
+                            showToast('success', `Advnace reciept created successfully with ref number ${data.data.data}`);
                             localStorage.clear();
                             history.push('/');
                         }

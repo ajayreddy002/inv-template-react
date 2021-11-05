@@ -167,7 +167,7 @@ const InvoiceComponent = () => {
                                 setSubmitting(false);
                                 formikRef.current.setSubmitting(false);
                                 localStorage.clear();
-                                showToast('success', `Invoice reciept created successfully with ref number of ${data.data}`);
+                                showToast('success', `Invoice reciept created successfully with ref number of ${data.data.data}`);
                                 history.push('/');
                             }
                         }

@@ -161,16 +161,54 @@ th {
   border: none;
   font-size: 25px;
 }
+
 .form-text {
   font-size: 12px;
 }
-.adj-table th{
+
+.adj-table th {
   font-size: 11px !important;
 }
+
 .css-1kpdewa-MuiAutocomplete-root {
   width: 150px;
 }
+
 .p-calendar {
   width: 100% !important;
   height: 55px !important;
+}
+
+.product-badge.status-pending {
+  background: #feedaf;
+  color: #8a5340;
+}
+
+.product-badge.status-completed {
+  background: #c8e6c9;
+  color: #256029;
+}
+
+.product-badge {
+  border-radius: 2px;
+  padding: 0.25em 0.5rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: .3px;
+}
+.w-130{
+  width: 130px !important;
+}
+.w-160{
+  width: 160px !important;
+}
+.w-150{
+  width: 150px !important;
+}
+.w-180{
+  width: 180px !important;
+}
+.pi {
+  font-size: 12px !important;
 }
