@@ -36,6 +36,9 @@ export const getInvoicesList = (url) => {
 export const deleteInvoiceById = (collectionType,id, url) => {
     return axios.delete(`${baseUrl}/${url}/${collectionType}/${id}`)
 }
+export const getViewInvoice = (collectionType,id, url) => {
+    return axios.get(`${baseUrl}/${url}/${collectionType}/${id}`)
+}
 export const getBusinessPlaceAPI = (url) => {
     return axios.get(`${baseUrl}/${url}`);
 }

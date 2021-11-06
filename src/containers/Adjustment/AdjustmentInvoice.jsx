@@ -80,12 +80,12 @@ const AdjustmentInvoice = () => {
             values = { ...values, ...homeFields }
             if(values && values.debitDocs.length === 0){
                 formikRef.current.setSubmitting(false);
-                return showToast('warning', 'Please create atlease one credit doc');
+                return showToast('error', 'Please create at least one debit doc', 'bottom-right');
             }
-            if(values && dbInvAmount > parseInt( values.creditDocs[0].amount.replace(/,/g, ''))){
-                formikRef.current.setSubmitting(false);
-                return showToast('error', 'Please check debit document amount shold not be more than credit document amount');
-            }
+            // if(values && dbInvAmount > parseInt( values.creditDocs[0].amount.replace(/,/g, ''))){
+            //     formikRef.current.setSubmitting(false);
+            //     return showToast('error', 'Please check debit document amount shold not be more than credit document amount', 'bottom-right');
+            // }
             
             postAdjustmentInvoice('adjustment', values)
                 .then(
@@ -94,7 +94,7 @@ const AdjustmentInvoice = () => {
                             console.log(data.data);
                             setSubmitting(false);
                             formikRef.current.setSubmitting(false);
-                            showToast('success', `Adjustment reciept created successfully with ref number of ${data.data.data}`);
+                            showToast('success', `Adjustment SOP created successfully with ref number of ${data.data.data}`);
                             localStorage.clear();
                             history.push('/');
                         }

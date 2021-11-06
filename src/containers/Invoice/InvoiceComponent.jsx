@@ -30,7 +30,6 @@ const InvoiceComponent = () => {
                 date: Yup.mixed().required('Required').typeError('Must be a date'),
                 tds: Yup.number().required('Required').typeError('Must be a number'),
                 tdsType: Yup.string().required('Required'),
-                bankCharges: Yup.mixed().required('Required').typeError('Must be a number'),
                 remarks: Yup.string().required('Required'),
                 others: Yup.string().required('Required'),
             })
@@ -143,18 +142,20 @@ const InvoiceComponent = () => {
         if (values && values.invoices) {
             let amount = 0;
             var invoiceAmount = 0;
+            let isOver = false;
             values.invoices.map(item => {
                 amount = parseInt(item.invAmount.replace(/,/g, ''));
                 if ((parseInt(item.collectedAmount.replace(/,/g, '')) + parseInt(item.tds.replace(/,/g, '')) + parseInt(item.bankCharges.replace(/,/g, ''))) > amount) {
-                    showToast('info', 'Please enter amount lessthan or equal to invoice amount')
+                    isOver = true;
+                    return showToast('info', 'Please enter amount lessthan or equal to invoice amount')
                 }
                 invoiceAmount += parseInt(item.invAmount.replace(/,/g, ''));
             });
             console.log(invoiceAmount);
-            if(invoiceAmount > parseInt(values.collectionAmount.replace(/,/g, ''))){
-                return showToast('warning', 'Total Invoice amount should not be greater than collection amount')
-            }
-            if ((localStorage.getItem('homeFields')) !== undefined || null) {
+            // if(invoiceAmount > parseInt(values.collectionAmount.replace(/,/g, ''))){
+            //     return showToast('error', 'Total Invoice amount should not be greater than collection amount', 'bottom-right')
+            // }
+            if ((localStorage.getItem('homeFields')) !== (undefined || null) && !isOver) {
                 const homeFields = JSON.parse(localStorage.getItem('homeFields'));
                 console.log(homeFields)
                 values = { ...values, ...homeFields };
@@ -167,7 +168,7 @@ const InvoiceComponent = () => {
                                 setSubmitting(false);
                                 formikRef.current.setSubmitting(false);
                                 localStorage.clear();
-                                showToast('success', `Invoice reciept created successfully with ref number of ${data.data.data}`);
+                                showToast('success', `Invoice SOP created successfully with ref number of ${data.data.data}`);
                                 history.push('/');
                             }
                         }

@@ -212,3 +212,6 @@ th {
 .pi {
   font-size: 12px !important;
 }
+.p-dialog {
+  width: 100%;
+}

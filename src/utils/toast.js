@@ -1,9 +1,9 @@
 import { toast } from "react-toastify";
 
-export default function showToast(type, message) {
+export default function showToast(type, message, position) {
     if (type === 'error') {
         toast.error(message, {
-            position: "top-right",
+            position: position ? position : "top-right",
             autoClose: 5000,
             hideProgressBar: false,
             closeOnClick: true,
@@ -15,7 +15,7 @@ export default function showToast(type, message) {
     }
     if (type === 'info') {
         toast.info(message, {
-            position: "top-right",
+            position: position ? position : "top-right",
             autoClose: 5000,
             hideProgressBar: false,
             closeOnClick: true,
@@ -27,7 +27,7 @@ export default function showToast(type, message) {
     }
     if (type === 'success') {
         toast.success(message, {
-            position: "top-right",
+            position: position ? position : "top-right",
             autoClose: 5000,
             hideProgressBar: false,
             closeOnClick: true,
@@ -39,7 +39,7 @@ export default function showToast(type, message) {
     }
     if (type === 'warning') {
         toast.warning(message, {
-            position: "top-right",
+            position: position ? position : "top-right",
             autoClose: 5000,
             hideProgressBar: false,
             closeOnClick: true,

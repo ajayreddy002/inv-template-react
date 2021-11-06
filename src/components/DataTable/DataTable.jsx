@@ -7,26 +7,17 @@ import { Toolbar } from 'primereact/toolbar';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import './DataTableDemo.css';
-import { deleteInvoiceById, getInvoicesList } from '../../services/base-api.sevrice';
+import { deleteInvoiceById, getInvoicesList, getViewInvoice } from '../../services/base-api.sevrice';
 import showToast from '../../utils/toast';
+import ViewInvoice from '../../containers/Invoices/ViewInvoice';
 const DataTableCrudDemo = () => {
-
-    let emptyProduct = {
-        id: null,
-        name: '',
-        image: null,
-        description: '',
-        category: null,
-        price: 0,
-        quantity: 0,
-        rating: 0,
-        inventoryStatus: 'INSTOCK'
-    };
 
     const [products, setProducts] = useState(null);
 
     const [deleteProductDialog, setDeleteProductDialog] = useState(false);
-    const [product, setProduct] = useState(emptyProduct);
+    const [viewDialog, setViewDialog] = useState(false);
+    const [product, setProduct] = useState();
+    const [viewInvData, setViewInvData] = useState();
     const [selectedProducts, setSelectedProducts] = useState(null);
     const [globalFilter, setGlobalFilter] = useState(null);
     const toast = useRef(null);
@@ -57,10 +48,28 @@ const DataTableCrudDemo = () => {
     const hideDeleteProductDialog = () => {
         setDeleteProductDialog(false);
     }
+    const hideViewInvDialog = () => {
+        setViewDialog(false);
+    }
 
     const confirmDeleteProduct = (product) => {
         setProduct(product);
         setDeleteProductDialog(true);
+    }
+    const openViewInvDialog = (product) => {
+        if (product) {
+            getViewInvoice(product.collection_type, product.id, 'view')
+                .then(data => {
+                    console.log(data.data.data)
+                    if (data.data && data.data.data) {
+                        setViewInvData(data.data.data);
+                        setViewDialog(true);
+                    }
+                }).catch(e => {
+                    showToast('error', 'Failed to get invoices details, please try again')
+                })
+        }
+
     }
 
     const deleteProduct = () => {
@@ -92,8 +101,8 @@ const DataTableCrudDemo = () => {
     }
 
     const priceBodyTemplate = (rowData) => {
-        if (rowData.collectionAmount) {
-            return formatCurrency(rowData.collectionAmount);
+        if (rowData.collectionAmount || rowData.amount) {
+            return formatCurrency(rowData.collectionAmount || rowData.amount);
         } else {
             return '-'
         }
@@ -109,18 +118,23 @@ const DataTableCrudDemo = () => {
     const statusBodyTemplate = (rowData) => {
         return <span className={`product-badge status-${getClassName(rowData.status)}`}>{rowData.status}</span>;
     }
+    const invNumberTemplate = (rowData) => {
+        return <span>{rowData.chqUtrNo || rowData.creditDocNo}</span>;
+    }
     const actionBodyTemplate = (rowData) => {
         return (
             <React.Fragment>
-                <Button icon="pi pi-eye" className="p-button-rounded p-button-primary p-mr-2 me-3" />
-                <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteProduct(rowData)} />
+                <Button icon="pi pi-eye" className="p-button-rounded p-button-primary p-mr-2 me-3" onClick={() => openViewInvDialog(rowData)} />
+                {rowData && rowData.status !== null && rowData.status.toLowerCase() === 'pending' &&
+                    <Button icon="pi pi-trash" className="p-button-rounded p-button-warning" onClick={() => confirmDeleteProduct(rowData)} />
+                }
             </React.Fragment>
         );
     }
 
     const header = (
         <div className="table-header">
-            <h5 className="p-m-0">List of reciepts</h5>
+            <h5 className="p-m-0">List of submitted SOP'S</h5>
             <span className="p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.target.value)} placeholder="Search..." />
@@ -129,8 +143,8 @@ const DataTableCrudDemo = () => {
     );
     const deleteProductDialogFooter = (
         <React.Fragment>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProductDialog} />
-            <Button label="Yes" icon="pi pi-check" className="p-button-text" onClick={deleteProduct} />
+            <Button label="No" icon="pi pi-times" className="p-button-secondary" onClick={hideDeleteProductDialog} />
+            <Button label="Yes" icon="pi pi-check" className="p-button-danger" onClick={deleteProduct} />
         </React.Fragment>
     );
 
@@ -144,12 +158,12 @@ const DataTableCrudDemo = () => {
                     paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                     currentPageReportTemplate="Showing {first} to {last} of {totalRecords} products"
                     globalFilter={globalFilter}
-                    header={header}>
+                    header={header} responsiveLayout="scroll">
                     <Column field="unique_ref_number" header="SOP Ref" sortable headerStyle={{ width: '105px' }}></Column>
                     <Column field="customerId" header="Customer ID" sortable className="w-130"></Column>
                     <Column field="customerName" header="Customer Name" sortable headerStyle={{ width: '155px' }}></Column>
                     <Column field="postingDate" header="Posting Date" sortable headerStyle={{ width: '135px' }}></Column>
-                    <Column field="chqUtrNo" header="Cheque/UTR No" sortable className="w-150"></Column>
+                    <Column field="chqUtrNo" header="Credit Details" sortable className="w-150" body={invNumberTemplate}></Column>
                     <Column field="collectionAmount" header="Collection Amount" headerStyle={{ width: '165px' }} body={priceBodyTemplate} sortable></Column>
                     <Column field="invoice_number" header="Number of invoices" headerStyle={{ width: '170px' }} sortable></Column>
                     <Column field="collection_type" header="Collection Type" sortable headerStyle={{ width: '150px' }}></Column>
@@ -160,9 +174,11 @@ const DataTableCrudDemo = () => {
 
             <Dialog visible={deleteProductDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteProductDialogFooter} onHide={hideDeleteProductDialog}>
                 <div className="confirmation-content">
-                    <i className="pi pi-exclamation-triangle p-mr-3" style={{ fontSize: '2rem' }} />
                     {product && <span>Are you sure you want to delete <b>{product.unique_ref_number}</b>?</span>}
                 </div>
+            </Dialog>
+            <Dialog visible={viewDialog} modal onHide={hideViewInvDialog} maximizable style={{ width: '75vw' }} header={`View of SOP Ref: ${viewInvData?.unique_ref_number}`}>
+                <ViewInvoice products={[viewInvData]}></ViewInvoice>
             </Dialog>
         </div>
     );

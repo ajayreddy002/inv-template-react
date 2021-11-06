@@ -130,7 +130,7 @@ const AdvanceInvoice = () => {
                             console.log(data.data);
                             setSubmitting(false);
                             formikRef.current.setSubmitting(false);
-                            showToast('success', `Advnace reciept created successfully with ref number ${data.data.data}`);
+                            showToast('success', `Advnace SOP created successfully with ref number ${data.data.data}`);
                             localStorage.clear();
                             history.push('/');
                         }
